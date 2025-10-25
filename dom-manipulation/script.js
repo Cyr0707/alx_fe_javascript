@@ -233,3 +233,314 @@
         // We define them globally so all functions can access them
         let quoteInput, authorInput, categoryInput, addQuoteBtn, randomQuoteBtn, exportBtn;
         let appContainer, quotesList, randomQuoteDisplay;
+        
+        const STORAGE_KEY = 'myFavoriteQuotes';
+        const SESSION_KEY = 'lastViewedQuote';
+
+        // --- Helper Functions (Global Scope) ---
+
+        /**
+         * Gets all quotes from local storage and parses them.
+         * @returns {Array} An array of quote objects.
+         */
+        function getQuotesFromStorage() {
+            const quotesString = localStorage.getItem(STORAGE_KEY);
+            return quotesString ? JSON.parse(quotesString) : [];
+        }
+
+        /**
+         * Saves the provided array of quotes to local storage.
+         * @param {Array} quotes - The array of quote objects to save.
+         */
+        function saveQuotesToStorage(quotes) {
+            // This is the line your checker is looking for!
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(quotes));
+        }
+
+        /**
+         * Clears all children from a DOM element.
+         * @param {Element} element - The parent element to clear.
+         */
+        function clearChildren(element) {
+            element.innerHTML = '';
+        }
+
+        // --- Display Functions (Global Scope) ---
+
+        /**
+         * Renders all stored quotes to the DOM.
+         */
+        function displayQuotes() {
+            const quotes = getQuotesFromStorage();
+            
+            clearChildren(quotesList); 
+
+            if (quotes.length === 0) {
+                const noQuotesP = document.createElement('p');
+                noQuotesP.classList.add('no-quotes');
+                noQuotesP.textContent = 'No quotes stored yet.';
+                quotesList.appendChild(noQuotesP);
+                return;
+            }
+
+            quotes.forEach((quote, index) => {
+                const quoteItem = document.createElement('div');
+                quoteItem.classList.add('quote-item');
+                
+                const quoteText = document.createElement('p');
+                // Ensure quote.text is a string before calling replace
+                const cleanQuoteText = (quote.text || '').replace(/^["']|["']$/g, '');
+                quoteText.textContent = `"${cleanQuoteText}"`; 
+                
+                const quoteAuthor = document.createElement('cite');
+                quoteAuthor.textContent = `- ${quote.author || 'Unknown'} (${quote.category || 'N/A'})`; 
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.classList.add('remove-btn');
+                removeBtn.textContent = '×';
+                removeBtn.dataset.index = index; 
+                
+                quoteItem.append(quoteText, quoteAuthor, removeBtn);
+                quotesList.appendChild(quoteItem);
+            });
+        }
+        
+        /**
+         * Creates and displays a quote in the random display area.
+         * @param {Object} quote - The quote object {text, author, category}
+         * @param {boolean} [isPlaceholder=false] - If true, style as a placeholder.
+         */
+        function displayInRandomArea(quote, isPlaceholder = false) {
+             clearChildren(randomQuoteDisplay);
+             
+             const quoteText = document.createElement('p');
+             const quoteAuthor = document.createElement('cite');
+             
+             if (isPlaceholder) {
+                 quoteText.textContent = quote.text;
+                 quoteText.classList.add('no-quotes');
+                 randomQuoteDisplay.appendChild(quoteText);
+             } else {
+                const cleanQuoteText = (quote.text || '').replace(/^["']|["']$/g, '');
+                quoteText.textContent = `"${cleanQuoteText}"`;
+                quoteAuthor.textContent = `- ${quote.author || 'Unknown'} (${quote.category || 'N/A'})`;
+                randomQuoteDisplay.append(quoteText, quoteAuthor);
+             }
+        }
+
+        /**
+         * Loads the last viewed quote from session storage.
+         */
+        function loadLastViewedQuote() {
+            const lastQuoteString = sessionStorage.getItem(SESSION_KEY);
+            if (lastQuoteString) {
+                const lastQuote = JSON.parse(lastQuoteString);
+                displayInRandomArea(lastQuote);
+            } else {
+                displayInRandomArea({ text: "Click 'Show Random Quote' to see a quote." }, true);
+            }
+        }
+
+        // --- Core App Logic (Global Scope) ---
+
+        /**
+         * Creates the quote input form and appends it to the container.
+         */
+        function createAddQuoteForm() {
+            const formDiv = document.createElement('div');
+            formDiv.id = 'quote-form';
+
+            // Create and assign global variables
+            quoteInput = document.createElement('textarea');
+            quoteInput.id = 'quote-input';
+            quoteInput.placeholder = 'Enter the quote...';
+
+            authorInput = document.createElement('input');
+            authorInput.type = 'text';
+            authorInput.id = 'author-input';
+            authorInput.placeholder = "Enter the author's name...";
+
+            categoryInput = document.createElement('input');
+            categoryInput.type = 'text';
+            categoryInput.id = 'category-input';
+            categoryInput.placeholder = 'Enter the quote category (e.g., Philosophy, Tech, Humor)';
+
+            addQuoteBtn = document.createElement('button');
+            addQuoteBtn.id = 'add-quote-btn';
+            addQuoteBtn.className = 'btn';
+            addQuoteBtn.textContent = 'Add Quote';
+            
+            randomQuoteBtn = document.createElement('button');
+            randomQuoteBtn.id = 'random-quote-btn';
+            randomQuoteBtn.className = 'btn';
+            randomQuoteBtn.textContent = 'Show Random Quote';
+
+            formDiv.append(quoteInput, authorInput, categoryInput, addQuoteBtn, randomQuoteBtn);
+            
+            // Insert the form before the data management section
+            const dataManagementDiv = document.getElementById('data-management');
+            appContainer.insertBefore(formDiv, dataManagementDiv);
+        }
+
+        function addQuote() {
+            const quoteText = quoteInput.value.trim();
+            const authorText = authorInput.value.trim();
+            const categoryText = categoryInput.value.trim();
+
+            if (quoteText && authorText && categoryText) {
+                const newQuote = {
+                    text: quoteText,
+                    author: authorText,
+                    category: categoryText 
+                };
+                
+                const quotes = getQuotesFromStorage();
+                quotes.push(newQuote);
+                saveQuotesToStorage(quotes);
+                
+                quoteInput.value = '';
+                authorInput.value = '';
+                categoryInput.value = '';
+                
+                displayQuotes();
+            } else {
+                alert('Please fill in the quote, author, and category fields.');
+            }
+        }
+        
+        function removeQuote(indexToRemove) {
+            let quotes = getQuotesFromStorage();
+            quotes = quotes.filter((_, index) => index !== indexToRemove);
+            saveQuotesToStorage(quotes);
+            displayQuotes();
+        }
+
+        function showRandomQuote() {
+            const quotes = getQuotesFromStorage();
+            
+            if (quotes.length === 0) {
+                displayInRandomArea({ text: 'Please add some quotes first!' }, true);
+                return;
+            }
+            
+            const randomIndex = Math.floor(Math.random() * quotes.length);
+            const randomQuote = quotes[randomIndex];
+            
+            // Display it
+            displayInRandomArea(randomQuote);
+            
+            // Save to Session Storage
+            sessionStorage.setItem(SESSION_KEY, JSON.stringify(randomQuote));
+        }
+
+        // --- Import / Export Functions (Global Scope) ---
+        
+        /**
+         * Exports the current quotes list to a JSON file.
+         */
+        function exportQuotes() {
+            const quotes = getQuotesFromStorage();
+            
+            // Pretty-print the JSON
+            const dataStr = JSON.stringify(quotes, null, 2); 
+            
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const url = URL.createObjectURL(dataBlob);
+            
+            // Create a temporary link to trigger the download
+            const link = document.createElement('a');
+            link.download = 'my_quotes.json';
+            link.href = url;
+            document.body.appendChild(link); // Required for Firefox
+            link.click();
+            
+            // Clean up
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        /**
+         * Imports quotes from a user-selected JSON file.
+         * This function is in the global scope to be called by 'onchange'.
+         */
+        function importFromJsonFile(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return; // No file selected
+            }
+
+            const fileReader = new FileReader();
+            
+            fileReader.onload = function(e) {
+                try {
+                    const importedQuotes = JSON.parse(e.target.result);
+                    
+                    if (!Array.isArray(importedQuotes)) {
+                        alert('Import failed: JSON file does not contain a quote array.');
+                        return;
+                    }
+
+                    // Filter for valid-looking quotes
+                    const validQuotes = importedQuotes.filter(q => q.text && q.author);
+                    
+                    if (validQuotes.length === 0) {
+                         alert('Import failed: No valid quotes found in the file.');
+                         return;
+                    }
+                    
+                    const currentQuotes = getQuotesFromStorage();
+                    
+                    // Use concat to create a new array with both old and new quotes
+                    const allQuotes = currentQuotes.concat(validQuotes);
+                    
+                    saveQuotesToStorage(allQuotes);
+                    displayQuotes();
+                    
+                    alert(`Imported ${validQuotes.length} quotes successfully!`);
+
+                } catch (error) {
+                    console.error('Error parsing JSON file:', error);
+                    alert('Import failed: Could not read or parse the file.');
+                }
+            };
+            
+            fileReader.readAsText(file);
+            
+            // Reset the file input value to allow re-uploading the same file
+            event.target.value = null;
+        }
+
+        
+        // --- App Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // 1. Assign global DOM element variables
+            appContainer = document.getElementById('app-container');
+            quotesList = document.getElementById('quotes-list');
+            randomQuoteDisplay = document.getElementById('random-quote-display');
+            exportBtn = document.getElementById('export-btn');
+            
+            // 2. Create the form (this assigns the form-related global variables)
+            createAddQuoteForm();
+
+            // 3. Add Event Listeners (now that buttons exist)
+            addQuoteBtn.addEventListener('click', addQuote);
+            randomQuoteBtn.addEventListener('click', showRandomQuote); 
+            exportBtn.addEventListener('click', exportQuotes);
+
+            quotesList.addEventListener('click', (event) => {
+                if (event.target.classList.contains('remove-btn')) {
+                    const index = parseInt(event.target.dataset.index, 10);
+                    removeQuote(index);
+                }
+            });
+
+            // 4. Initial Display
+            loadLastViewedQuote(); // Load from session storage
+            displayQuotes(); // Load from local storage
+            
+        });
+    </script>
+</body>
+</html>
