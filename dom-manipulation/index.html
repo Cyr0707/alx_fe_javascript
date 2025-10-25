@@ -78,10 +78,12 @@
             transition: background-color 0.2s ease;
             margin-top: 5px;
             text-align: center;
+            flex-grow: 1; /* Make buttons share space */
         }
         
         #add-quote-btn {
             background-color: #3498db;
+            flex-grow: 0; /* Don't grow this one */
         }
         #add-quote-btn:hover {
             background-color: #2980b9;
@@ -89,6 +91,7 @@
         
         #random-quote-btn {
             background-color: #2ecc71;
+            flex-grow: 0; /* Don't grow this one */
         }
         #random-quote-btn:hover {
             background-color: #27ae60;
@@ -97,15 +100,15 @@
         /* Data Management Section */
         #data-management {
             display: flex;
+            flex-wrap: wrap; /* Allow wrapping */
             gap: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 10px; /* Reduced margin */
             padding-bottom: 20px;
             border-bottom: 1px solid #ecf0f1;
         }
 
         #export-btn {
             background-color: #f39c12;
-            flex-grow: 1; 
         }
         #export-btn:hover {
             background-color: #e67e22;
@@ -113,7 +116,6 @@
 
         #import-label {
             background-color: #9b59b6;
-            flex-grow: 1; 
         }
         #import-label:hover {
             background-color: #8e44ad;
@@ -123,7 +125,27 @@
             display: none;
         }
 
-        /* NEW: Category Filter Styling */
+        /* NEW: Sync Button */
+        #sync-btn {
+            background-color: #1abc9c;
+            width: 100%; /* Make it full width on its own line */
+            flex-basis: 100%;
+        }
+        #sync-btn:hover {
+            background-color: #16a085;
+        }
+
+        /* NEW: Sync Status */
+        #sync-status {
+            text-align: center;
+            color: #777;
+            font-style: italic;
+            height: 1.2em; /* Reserve space to prevent layout jump */
+            margin-bottom: 20px;
+            transition: color 0.3s ease;
+        }
+
+        /* Category Filter Styling */
         #category-filter-container {
             margin-top: 20px;
             display: flex;
@@ -236,7 +258,10 @@
             <button id="export-btn" class="btn">Export Quotes (JSON)</button>
             <label for="importFile" id="import-label" class="btn">Import Quotes (JSON)</label>
             <input type="file" id="importFile" accept=".json" onchange="importFromJsonFile(event)" />
+            <button id="sync-btn" class="btn">Sync Now</button>
         </div>
+
+        <div id="sync-status"></div>
 
         <div id="random-quote-display">
             </div>
