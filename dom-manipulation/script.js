@@ -1,12 +1,12 @@
 // --- Global Variables ---
 let quoteInput, authorInput, categoryInput, addQuoteBtn, randomQuoteBtn, exportBtn, categoryFilter;
 let appContainer, quotesList, quoteDisplay;
-let syncBtn, syncStatus; // NEW: For server sync
+let syncBtn, syncStatus; 
 
 const STORAGE_KEY = 'myFavoriteQuotes';
 const SESSION_KEY = 'lastViewedQuote';
 const FILTER_KEY = 'lastSelectedFilter'; 
-const SERVER_URL = 'https://jsonplaceholder.typicode.com/posts'; // NEW: Mock server URL
+const SERVER_URL = 'https://jsonplaceholder.typicode.com/posts'; 
 
 // --- Helper Functions (Global Scope) ---
 
@@ -151,7 +151,6 @@ function createAddQuoteForm() {
     appContainer.insertBefore(formDiv, dataManagementDiv);
 }
 
-// MODIFIED: 'addQuote' is now async to handle server POST
 async function addQuote() {
     const quoteText = quoteInput.value.trim();
     const authorText = authorInput.value.trim();
@@ -169,7 +168,6 @@ async function addQuote() {
     };
     
     try {
-        // Push to server and get back the quote with a server ID
         const serverQuote = await pushQuoteToServer(newQuote);
         
         const quotes = getQuotesFromStorage();
@@ -186,21 +184,18 @@ async function addQuote() {
     } catch (error) {
         console.error('Failed to post quote:', error);
         updateSyncStatus('Error: Quote saved locally but failed to sync.');
-        // Still save locally even if server fails
         const quotes = getQuotesFromStorage();
-        quotes.push(newQuote); // Save without server ID
+        quotes.push(newQuote); 
         saveQuotesToStorage(quotes);
         populateCategories(); 
         displayQuotes();
     }
 }
 
-// MODIFIED: 'removeQuote' is now async to handle server DELETE
 async function removeQuote(indexToRemove) {
     let quotes = getQuotesFromStorage();
     const quoteToRemove = quotes[indexToRemove];
 
-    // If the quote has a server 'id', attempt to delete it from the server
     if (quoteToRemove && quoteToRemove.id) {
         try {
             await fetch(`${SERVER_URL}/${quoteToRemove.id}`, {
@@ -213,7 +208,6 @@ async function removeQuote(indexToRemove) {
         }
     }
 
-    // Remove from local storage regardless
     quotes = quotes.filter((_, index) => index !== indexToRemove);
     saveQuotesToStorage(quotes);
     
@@ -281,7 +275,6 @@ function importFromJsonFile(event) {
             }
             
             const currentQuotes = getQuotesFromStorage();
-            // Simple merge: add new, avoiding exact duplicates
             const currentQuotesSet = new Set(currentQuotes.map(q => JSON.stringify(q)));
             validQuotes.forEach(q => {
                 if (!currentQuotesSet.has(JSON.stringify(q))) {
@@ -304,7 +297,7 @@ function importFromJsonFile(event) {
     event.target.value = null;
 }
 
-// --- NEW: Server Sync Functions ---
+// --- NEW/REFACTORED: Server Sync Functions ---
 
 /**
  * Updates the sync status message in the UI.
@@ -313,9 +306,10 @@ function updateSyncStatus(message, isError = false) {
     syncStatus.textContent = message;
     syncStatus.style.color = isError ? '#e74c3c' : '#777';
     
-    // Clear the message after 4 seconds
     setTimeout(() => {
-        syncStatus.textContent = '';
+        if (syncStatus.textContent === message) {
+            syncStatus.textContent = '';
+        }
     }, 4000);
 }
 
@@ -324,11 +318,23 @@ function updateSyncStatus(message, isError = false) {
  */
 function mapServerQuote(post) {
     return {
-        id: post.id, // Keep the server ID
+        id: post.id, 
         text: post.title,
         author: `User ${post.userId}`,
-        category: 'Server' // Assign a default category
+        category: 'Server'
     };
+}
+
+/**
+ * NEW: Fetches "base" quotes from the server.
+ */
+async function fetchQuotesFromServer() {
+    const response = await fetch(`${SERVER_URL}?_limit=10`); // Get 10 base quotes
+    if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+    }
+    const serverPosts = await response.json();
+    return serverPosts.map(mapServerQuote);
 }
 
 /**
@@ -340,8 +346,8 @@ async function pushQuoteToServer(quote) {
         method: 'POST',
         body: JSON.stringify({
             title: quote.text,
-            body: quote.text, // JSONPlaceholder needs a 'body'
-            userId: 1 // Mock user ID
+            body: quote.text, 
+            userId: 1 
         }),
         headers: {
             'Content-type': 'application/json; charset=UTF-8',
@@ -354,7 +360,6 @@ async function pushQuoteToServer(quote) {
 
     const serverPost = await response.json();
     
-    // Return our quote format, but with the new ID from the server
     return {
         id: serverPost.id,
         text: quote.text,
@@ -364,33 +369,25 @@ async function pushQuoteToServer(quote) {
 }
 
 /**
- * Fetches server data and merges it with local data.
+ * MODIFIED: Fetches server data and merges it with local data.
  */
 async function syncData() {
     updateSyncStatus('Syncing with server...');
     try {
         // 1. Fetch "base" quotes from the server
-        const response = await fetch(`${SERVER_URL}?_limit=10`); // Get 10 base quotes
-        if (!response.ok) {
-            throw new Error(`Server responded with status: ${response.status}`);
-        }
-        const serverPosts = await response.json();
-        const serverBaseQuotes = serverPosts.map(mapServerQuote);
+        const serverBaseQuotes = await fetchQuotesFromServer();
 
         // 2. Get all local quotes
         const localQuotes = getQuotesFromStorage();
 
         // 3. Find quotes that are *only* local (ours that we added)
-        // We assume serverBaseQuotes are IDs 1-10
         const localOnlyQuotes = localQuotes.filter(lq => {
-            // Check if this local quote's ID is in the base server set
             return !serverBaseQuotes.some(sq => sq.id === lq.id);
         });
 
         // 4. Merge: Server data takes precedence, but we keep our added quotes
         const mergedQuotes = [...serverBaseQuotes, ...localOnlyQuotes];
         
-        // Sort by ID to maintain a consistent order
         mergedQuotes.sort((a, b) => (a.id || 0) - (b.id || 0));
         
         // 5. Check if a sync is actually needed
@@ -419,8 +416,8 @@ document.addEventListener('DOMContentLoaded', () => {
     quoteDisplay = document.getElementById('random-quote-display'); 
     exportBtn = document.getElementById('export-btn');
     categoryFilter = document.getElementById('categoryFilter'); 
-    syncBtn = document.getElementById('sync-btn'); // NEW
-    syncStatus = document.getElementById('sync-status'); // NEW
+    syncBtn = document.getElementById('sync-btn'); 
+    syncStatus = document.getElementById('sync-status'); 
     
     // 2. Create the form
     createAddQuoteForm();
@@ -429,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
     addQuoteBtn.addEventListener('click', addQuote);
     randomQuoteBtn.addEventListener('click', showRandomQuote); 
     exportBtn.addEventListener('click', exportQuotes); 
-    syncBtn.addEventListener('click', syncData); // NEW
+    syncBtn.addEventListener('click', syncData); 
 
     quotesList.addEventListener('click', (event) => {
         if (event.target.classList.contains('remove-btn')) {
@@ -444,7 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
     displayQuotes();
     
     // 5. Initial sync on load and set up periodic sync
-    syncData(); // Sync once on load
-    setInterval(syncData, 60000); // Sync every 60 seconds
+    syncData(); 
+    setInterval(syncData, 60000); 
     
 });
