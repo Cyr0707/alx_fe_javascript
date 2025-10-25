@@ -178,34 +178,23 @@
     <div id="app-container">
         <h1>My Favorite Quotes 📚</h1>
         
-        <div id="quote-form">
-            <textarea id="quote-input" placeholder="Enter the quote..."></textarea>
-            <input type="text" id="author-input" placeholder="Enter the author's name...">
-            <input type="text" id="category-input" placeholder="Enter the quote category (e.g., Philosophy, Tech, Humor)">
-            <button id="add-quote-btn">Add Quote</button>
-            <button id="random-quote-btn">Show Random Quote</button>
-        </div>
-
         <div id="random-quote-display">
             <p id="initial-random-text" class="no-quotes">Click 'Show Random Quote' to see a quote.</p>
         </div>
         <h2>Stored Quotes</h2>
         <div id="quotes-list">
-            </div>
+        </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             
-            // --- Define Variables ---
-            const quoteInput = document.getElementById('quote-input');
-            const authorInput = document.getElementById('author-input');
-            const categoryInput = document.getElementById('category-input');
-            const addQuoteBtn = document.getElementById('add-quote-btn');
-            const randomQuoteBtn = document.getElementById('random-quote-btn');
+            // --- Global Variables (will be assigned after form creation) ---
+            let quoteInput, authorInput, categoryInput, addQuoteBtn, randomQuoteBtn;
+            
+            const appContainer = document.getElementById('app-container');
             const quotesList = document.getElementById('quotes-list');
             const randomQuoteDisplay = document.getElementById('random-quote-display');
-            
             const STORAGE_KEY = 'myFavoriteQuotes';
 
             // --- Helper Functions ---
@@ -245,7 +234,6 @@
             function displayQuotes() {
                 const quotes = getQuotesFromStorage();
                 
-                // Use clearChildren instead of element.innerHTML = ''
                 clearChildren(quotesList); 
 
                 if (quotes.length === 0) {
@@ -256,18 +244,15 @@
                     return;
                 }
 
-                // Iterate through quotes and create HTML for each
                 quotes.forEach((quote, index) => {
                     const quoteItem = document.createElement('div');
                     quoteItem.classList.add('quote-item');
                     
                     const quoteText = document.createElement('p');
                     const cleanQuoteText = quote.text.replace(/^["']|["']$/g, '');
-                    // Use textContent instead of innerHTML
                     quoteText.textContent = `"${cleanQuoteText}"`; 
                     
                     const quoteAuthor = document.createElement('cite');
-                    // Use textContent instead of innerHTML
                     quoteAuthor.textContent = `- ${quote.author} (${quote.category || 'N/A'})`; 
                     
                     const removeBtn = document.createElement('button');
@@ -275,9 +260,7 @@
                     removeBtn.textContent = '×';
                     removeBtn.dataset.index = index; 
                     
-                    // Use append instead of multiple appendChild calls
                     quoteItem.append(quoteText, quoteAuthor, removeBtn);
-                    
                     quotesList.appendChild(quoteItem);
                 });
             }
@@ -285,6 +268,9 @@
             // --- Implement Add Quote Function ---
 
             function addQuote() {
+                // Ensure variables are assigned before using them
+                if (!quoteInput || !authorInput || !categoryInput) return;
+
                 const quoteText = quoteInput.value.trim();
                 const authorText = authorInput.value.trim();
                 const categoryText = categoryInput.value.trim();
@@ -313,13 +299,12 @@
             // --- Implement Remove Quote Function ---
             function removeQuote(indexToRemove) {
                 let quotes = getQuotesFromStorage();
-                // Filter out the quote at the specified index
                 quotes = quotes.filter((_, index) => index !== indexToRemove);
                 saveQuotesToStorage(quotes);
                 displayQuotes();
             }
 
-            // --- Implement Random Quote Function (RENAMED FUNCTION) ---
+            // --- Implement Random Quote Function ---
 
             /**
              * Selects a random quote from storage and displays it.
@@ -327,7 +312,6 @@
             function showRandomQuote() {
                 const quotes = getQuotesFromStorage();
                 
-                // Use clearChildren instead of element.innerHTML = ''
                 clearChildren(randomQuoteDisplay);
                 
                 if (quotes.length === 0) {
@@ -338,43 +322,87 @@
                     return;
                 }
                 
-                // 1. Get a random index
                 const randomIndex = Math.floor(Math.random() * quotes.length);
                 const randomQuote = quotes[randomIndex];
                 
-                // 2. Prepare the display elements
                 const cleanQuoteText = randomQuote.text.replace(/^["']|["']$/g, '');
                 
                 const quoteText = document.createElement('p');
-                // Use textContent instead of innerHTML
                 quoteText.textContent = `"${cleanQuoteText}"`;
                 
                 const quoteAuthor = document.createElement('cite');
-                // Use textContent instead of innerHTML
                 quoteAuthor.textContent = `- ${randomQuote.author} (${randomQuote.category || 'N/A'})`;
                 
-                // 3. Append them to the display area
                 randomQuoteDisplay.append(quoteText, quoteAuthor);
             }
+
+            // --- NEW FUNCTION: Create Add Quote Form ---
             
-            // --- Add Event Listeners ---
+            /**
+             * Creates the quote input form and appends it to the container.
+             */
+            function createAddQuoteForm() {
+                // 1. Create the form container
+                const formDiv = document.createElement('div');
+                formDiv.id = 'quote-form';
+
+                // 2. Create the elements
+                const quoteTextarea = document.createElement('textarea');
+                quoteTextarea.id = 'quote-input';
+                quoteTextarea.placeholder = 'Enter the quote...';
+
+                const authorIn = document.createElement('input');
+                authorIn.type = 'text';
+                authorIn.id = 'author-input';
+                authorIn.placeholder = "Enter the author's name...";
+
+                const categoryIn = document.createElement('input');
+                categoryIn.type = 'text';
+                categoryIn.id = 'category-input';
+                categoryIn.placeholder = 'Enter the quote category (e.g., Philosophy, Tech, Humor)';
+
+                const addBtn = document.createElement('button');
+                addBtn.id = 'add-quote-btn';
+                addBtn.textContent = 'Add Quote';
+                
+                const randomBtn = document.createElement('button');
+                randomBtn.id = 'random-quote-btn';
+                randomBtn.textContent = 'Show Random Quote';
+
+                // 3. Append elements to the form container
+                formDiv.append(quoteTextarea, authorIn, categoryIn, addBtn, randomBtn);
+
+                // 4. Find the element to insert before (random-quote-display)
+                const randomDisplay = document.getElementById('random-quote-display');
+                
+                // 5. Insert the form into the main container, before the random display
+                appContainer.insertBefore(formDiv, randomDisplay);
+
+                // 6. NOW assign the global variables
+                quoteInput = quoteTextarea;
+                authorInput = authorIn;
+                categoryInput = categoryIn;
+                addQuoteBtn = addBtn;
+                randomQuoteBtn = randomBtn;
+            }
+
+            // --- App Initialization ---
+            
+            // 1. Create the form dynamically
+            createAddQuoteForm();
+
+            // 2. Add Event Listeners (now that the buttons exist)
             addQuoteBtn.addEventListener('click', addQuote);
-            
-            // Call the RENAMED function here
             randomQuoteBtn.addEventListener('click', showRandomQuote); 
 
-            // Add event listener to the quotes list for delegation
             quotesList.addEventListener('click', (event) => {
-                // Check if the clicked element is a remove button
                 if (event.target.classList.contains('remove-btn')) {
-                    // Get the index from the data-index attribute
                     const index = parseInt(event.target.dataset.index, 10);
                     removeQuote(index);
                 }
             });
 
-            // --- Initial Display ---
-            // Load and display any quotes already in storage
+            // 3. Initial Display
             displayQuotes();
             
         });
