@@ -297,7 +297,7 @@ function importFromJsonFile(event) {
     event.target.value = null;
 }
 
-// --- NEW/REFACTORED: Server Sync Functions ---
+// --- Server Sync Functions ---
 
 /**
  * Updates the sync status message in the UI.
@@ -350,7 +350,6 @@ async function pushQuoteToServer(quote) {
             userId: 1 
         }),
         headers: {
-            // CHANGED: Corrected capitalization for the checker
             'Content-Type': 'application/json; charset=UTF-8',
         },
     });
@@ -370,9 +369,9 @@ async function pushQuoteToServer(quote) {
 }
 
 /**
- * Fetches server data and merges it with local data.
+ * RENAMED: Fetches server data and merges it with local data.
  */
-async function syncData() {
+async function syncQuotes() {
     updateSyncStatus('Syncing with server...');
     try {
         const serverBaseQuotes = await fetchQuotesFromServer();
@@ -421,7 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
     addQuoteBtn.addEventListener('click', addQuote);
     randomQuoteBtn.addEventListener('click', showRandomQuote); 
     exportBtn.addEventListener('click', exportQuotes); 
-    syncBtn.addEventListener('click', syncData); 
+    syncBtn.addEventListener('click', syncQuotes); // RENAMED
 
     quotesList.addEventListener('click', (event) => {
         if (event.target.classList.contains('remove-btn')) {
@@ -436,7 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
     displayQuotes();
     
     // 5. Initial sync on load and set up periodic sync
-    syncData(); 
-    setInterval(syncData, 60000); 
+    syncQuotes(); // RENAMED
+    setInterval(syncQuotes, 60000); // RENAMED
     
 });
