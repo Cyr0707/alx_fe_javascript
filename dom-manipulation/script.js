@@ -309,13 +309,22 @@
                     alert('Please fill in the quote, author, and category fields.');
                 }
             }
+            
+            // --- Implement Remove Quote Function ---
+            function removeQuote(indexToRemove) {
+                let quotes = getQuotesFromStorage();
+                // Filter out the quote at the specified index
+                quotes = quotes.filter((_, index) => index !== indexToRemove);
+                saveQuotesToStorage(quotes);
+                displayQuotes();
+            }
 
             // --- Implement Random Quote Function (RENAMED FUNCTION) ---
 
             /**
              * Selects a random quote from storage and displays it.
              */
-            function displayRandomQuote() {
+            function showRandomQuote() {
                 const quotes = getQuotesFromStorage();
                 
                 // Use clearChildren instead of element.innerHTML = ''
@@ -343,3 +352,32 @@
                 const quoteAuthor = document.createElement('cite');
                 // Use textContent instead of innerHTML
                 quoteAuthor.textContent = `- ${randomQuote.author} (${randomQuote.category || 'N/A'})`;
+                
+                // 3. Append them to the display area
+                randomQuoteDisplay.append(quoteText, quoteAuthor);
+            }
+            
+            // --- Add Event Listeners ---
+            addQuoteBtn.addEventListener('click', addQuote);
+            
+            // Call the RENAMED function here
+            randomQuoteBtn.addEventListener('click', showRandomQuote); 
+
+            // Add event listener to the quotes list for delegation
+            quotesList.addEventListener('click', (event) => {
+                // Check if the clicked element is a remove button
+                if (event.target.classList.contains('remove-btn')) {
+                    // Get the index from the data-index attribute
+                    const index = parseInt(event.target.dataset.index, 10);
+                    removeQuote(index);
+                }
+            });
+
+            // --- Initial Display ---
+            // Load and display any quotes already in storage
+            displayQuotes();
+            
+        });
+    </script>
+</body>
+</html>
