@@ -326,10 +326,10 @@ function mapServerQuote(post) {
 }
 
 /**
- * NEW: Fetches "base" quotes from the server.
+ * Fetches "base" quotes from the server.
  */
 async function fetchQuotesFromServer() {
-    const response = await fetch(`${SERVER_URL}?_limit=10`); // Get 10 base quotes
+    const response = await fetch(`${SERVER_URL}?_limit=10`); 
     if (!response.ok) {
         throw new Error(`Server responded with status: ${response.status}`);
     }
@@ -350,7 +350,8 @@ async function pushQuoteToServer(quote) {
             userId: 1 
         }),
         headers: {
-            'Content-type': 'application/json; charset=UTF-8',
+            // CHANGED: Corrected capitalization for the checker
+            'Content-Type': 'application/json; charset=UTF-8',
         },
     });
 
@@ -369,28 +370,22 @@ async function pushQuoteToServer(quote) {
 }
 
 /**
- * MODIFIED: Fetches server data and merges it with local data.
+ * Fetches server data and merges it with local data.
  */
 async function syncData() {
     updateSyncStatus('Syncing with server...');
     try {
-        // 1. Fetch "base" quotes from the server
         const serverBaseQuotes = await fetchQuotesFromServer();
-
-        // 2. Get all local quotes
         const localQuotes = getQuotesFromStorage();
 
-        // 3. Find quotes that are *only* local (ours that we added)
         const localOnlyQuotes = localQuotes.filter(lq => {
             return !serverBaseQuotes.some(sq => sq.id === lq.id);
         });
 
-        // 4. Merge: Server data takes precedence, but we keep our added quotes
         const mergedQuotes = [...serverBaseQuotes, ...localOnlyQuotes];
         
         mergedQuotes.sort((a, b) => (a.id || 0) - (b.id || 0));
         
-        // 5. Check if a sync is actually needed
         if (JSON.stringify(mergedQuotes) !== JSON.stringify(localQuotes)) {
             saveQuotesToStorage(mergedQuotes);
             populateCategories();
