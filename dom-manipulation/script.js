@@ -49,7 +49,8 @@
         }
 
         #quote-input,
-        #author-input {
+        #author-input,
+        #category-input { /* Added category-input here */
             width: 100%;
             padding: 12px;
             font-size: 16px;
@@ -107,6 +108,7 @@
             text-align: right;
             font-weight: bold;
             color: #555;
+            font-size: 0.9em; /* Make citation slightly smaller */
         }
         
         .remove-btn {
@@ -143,6 +145,7 @@
         <div id="quote-form">
             <textarea id="quote-input" placeholder="Enter the quote..."></textarea>
             <input type="text" id="author-input" placeholder="Enter the author's name...">
+            <input type="text" id="category-input" placeholder="Enter the quote category (e.g., Philosophy, Tech, Humor)">
             <button id="add-quote-btn">Add Quote</button>
         </div>
         
@@ -157,6 +160,7 @@
             // --- Define Variables ---
             const quoteInput = document.getElementById('quote-input');
             const authorInput = document.getElementById('author-input');
+            const categoryInput = document.getElementById('category-input'); // NEW VARIABLE
             const addQuoteBtn = document.getElementById('add-quote-btn');
             const quotesList = document.getElementById('quotes-list');
             
@@ -207,104 +211,8 @@
                     
                     // Create the quote text paragraph
                     const quoteText = document.createElement('p');
-                    quoteText.textContent = `"${quote.text}"`; // Add quotes
+                    const cleanQuoteText = quote.text.replace(/^["']|["']$/g, '');
+                    quoteText.textContent = `"${cleanQuoteText}"`; 
                     
-                    // Create the author citation
-                    const quoteAuthor = document.createElement('cite');
-                    quoteAuthor.textContent = `- ${quote.author}`;
-                    
-                    // Create the remove button
-                    const removeBtn = document.createElement('button');
-                    removeBtn.classList.add('remove-btn');
-                    removeBtn.textContent = '×'; // 'X' character
-                    // Store the index of the quote to be removed in a data-attribute
-                    removeBtn.dataset.index = index; 
-                    
-                    // Add elements to the item
-                    quoteItem.appendChild(quoteText);
-                    quoteItem.appendChild(quoteAuthor);
-                    quoteItem.appendChild(removeBtn);
-                    
-                    // Add the item to the list
-                    quotesList.appendChild(quoteItem);
-                });
-            }
-
-            // --- Implement Add Quote Function ---
-
-            function addQuote() {
-                const quoteText = quoteInput.value.trim();
-                const authorText = authorInput.value.trim();
-
-                // Check if both fields are filled
-                if (quoteText && authorText) {
-                    // Create the quote object
-                    const newQuote = {
-                        text: quoteText,
-                        author: authorText
-                    };
-                    
-                    // Retrieve existing quotes
-                    const quotes = getQuotesFromStorage();
-                    
-                    // Add the new quote
-                    quotes.push(newQuote);
-                    
-                    // Save the updated array back to local storage
-                    saveQuotesToStorage(quotes);
-                    
-                    // Clear the input fields
-                    quoteInput.value = '';
-                    authorInput.value = '';
-                    
-                    // Refresh the displayed list
-                    displayQuotes();
-                    
-                } else {
-                    alert('Please fill in both the quote and author fields.');
-                }
-            }
-
-            // --- Implement Remove Quote Function ---
-            
-            /**
-             * Handles click events on the quotesList for removing quotes.
-             * This uses event delegation.
-             */
-            function handleRemoveQuote(event) {
-                // Check if the clicked element is a remove button
-                if (event.target.classList.contains('remove-btn')) {
-                    // Get the index from the button's data-index attribute
-                    // Convert it to a number
-                    const indexToRemove = parseInt(event.target.dataset.index, 10);
-                    
-                    // Get all quotes
-                    const quotes = getQuotesFromStorage();
-                    
-                    // Remove the quote at the specified index
-                    // splice(startIndex, deleteCount)
-                    quotes.splice(indexToRemove, 1);
-                    
-                    // Save the modified array back to storage
-                    saveQuotesToStorage(quotes);
-                    
-                    // Update the displayed list
-                    displayQuotes();
-                }
-            }
-
-            // --- Add Event Listeners ---
-            
-            // Listen for clicks on the "Add Quote" button
-            addQuoteBtn.addEventListener('click', addQuote);
-            
-            // Listen for clicks within the quotes list (for remove buttons)
-            quotesList.addEventListener('click', handleRemoveQuote);
-
-            // --- Initial Load ---
-            // Display any quotes that are already in storage when the page loads
-            displayQuotes();
-        });
-    </script>
-</body>
-</html>
+                    // Create the author citation (UPDATED TO INCLUDE CATEGORY)
+                    const quoteAuthor
