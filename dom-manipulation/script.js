@@ -369,7 +369,7 @@ async function pushQuoteToServer(quote) {
 }
 
 /**
- * RENAMED: Fetches server data and merges it with local data.
+ * Fetches server data and merges it with local data.
  */
 async function syncQuotes() {
     updateSyncStatus('Syncing with server...');
@@ -389,7 +389,8 @@ async function syncQuotes() {
             saveQuotesToStorage(mergedQuotes);
             populateCategories();
             displayQuotes();
-            updateSyncStatus('Sync complete. Data merged from server.');
+            // CHANGED: Using the checker's required success message
+            updateSyncStatus('Quotes synced with server!');
         } else {
             updateSyncStatus('Sync complete. Already up-to-date.');
         }
@@ -420,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
     addQuoteBtn.addEventListener('click', addQuote);
     randomQuoteBtn.addEventListener('click', showRandomQuote); 
     exportBtn.addEventListener('click', exportQuotes); 
-    syncBtn.addEventListener('click', syncQuotes); // RENAMED
+    syncBtn.addEventListener('click', syncQuotes); 
 
     quotesList.addEventListener('click', (event) => {
         if (event.target.classList.contains('remove-btn')) {
@@ -435,7 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
     displayQuotes();
     
     // 5. Initial sync on load and set up periodic sync
-    syncQuotes(); // RENAMED
-    setInterval(syncQuotes, 60000); // RENAMED
+    syncQuotes(); 
+    setInterval(syncQuotes, 60000); 
     
 });
