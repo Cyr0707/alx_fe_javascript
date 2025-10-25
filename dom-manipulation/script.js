@@ -46,7 +46,7 @@
             flex-direction: column;
             gap: 15px;
             margin-bottom: 30px;
-            padding-bottom: 20px; /* Add space below form */
+            padding-bottom: 20px;
             border-bottom: 1px solid #ecf0f1;
         }
 
@@ -67,7 +67,7 @@
         }
 
         #add-quote-btn,
-        #random-quote-btn { /* Style for both buttons */
+        #random-quote-btn {
             padding: 12px 20px;
             font-size: 16px;
             font-weight: bold;
@@ -85,7 +85,7 @@
         }
         
         #random-quote-btn {
-            background-color: #2ecc71; /* A different color for the random button */
+            background-color: #2ecc71;
         }
         
         #random-quote-btn:hover {
@@ -180,4 +180,166 @@
         
         <div id="quote-form">
             <textarea id="quote-input" placeholder="Enter the quote..."></textarea>
-            <input type="text
+            <input type="text" id="author-input" placeholder="Enter the author's name...">
+            <input type="text" id="category-input" placeholder="Enter the quote category (e.g., Philosophy, Tech, Humor)">
+            <button id="add-quote-btn">Add Quote</button>
+            <button id="random-quote-btn">Show Random Quote</button>
+        </div>
+
+        <div id="random-quote-display">
+            <p id="initial-random-text" class="no-quotes">Click 'Show Random Quote' to see a quote.</p>
+        </div>
+        <h2>Stored Quotes</h2>
+        <div id="quotes-list">
+            </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- Define Variables ---
+            const quoteInput = document.getElementById('quote-input');
+            const authorInput = document.getElementById('author-input');
+            const categoryInput = document.getElementById('category-input');
+            const addQuoteBtn = document.getElementById('add-quote-btn');
+            const randomQuoteBtn = document.getElementById('random-quote-btn');
+            const quotesList = document.getElementById('quotes-list');
+            const randomQuoteDisplay = document.getElementById('random-quote-display');
+            
+            const STORAGE_KEY = 'myFavoriteQuotes';
+
+            // --- Helper Functions ---
+
+            /**
+             * Gets all quotes from local storage and parses them.
+             * @returns {Array} An array of quote objects.
+             */
+            function getQuotesFromStorage() {
+                const quotesString = localStorage.getItem(STORAGE_KEY);
+                return quotesString ? JSON.parse(quotesString) : [];
+            }
+
+            /**
+             * Saves the provided array of quotes to local storage.
+             * @param {Array} quotes - The array of quote objects to save.
+             */
+            function saveQuotesToStorage(quotes) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(quotes));
+            }
+
+            /**
+             * Clears all children from a DOM element.
+             * @param {Element} element - The parent element to clear.
+             */
+            function clearChildren(element) {
+                while (element.firstChild) {
+                    element.removeChild(element.firstChild);
+                }
+            }
+
+            // --- Implement Display Function ---
+            
+            /**
+             * Renders all stored quotes to the DOM.
+             */
+            function displayQuotes() {
+                const quotes = getQuotesFromStorage();
+                
+                // Use clearChildren instead of element.innerHTML = ''
+                clearChildren(quotesList); 
+
+                if (quotes.length === 0) {
+                    const noQuotesP = document.createElement('p');
+                    noQuotesP.classList.add('no-quotes');
+                    noQuotesP.textContent = 'No quotes stored yet.';
+                    quotesList.appendChild(noQuotesP);
+                    return;
+                }
+
+                // Iterate through quotes and create HTML for each
+                quotes.forEach((quote, index) => {
+                    const quoteItem = document.createElement('div');
+                    quoteItem.classList.add('quote-item');
+                    
+                    const quoteText = document.createElement('p');
+                    const cleanQuoteText = quote.text.replace(/^["']|["']$/g, '');
+                    // Use textContent instead of innerHTML
+                    quoteText.textContent = `"${cleanQuoteText}"`; 
+                    
+                    const quoteAuthor = document.createElement('cite');
+                    // Use textContent instead of innerHTML
+                    quoteAuthor.textContent = `- ${quote.author} (${quote.category || 'N/A'})`; 
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.classList.add('remove-btn');
+                    removeBtn.textContent = '×';
+                    removeBtn.dataset.index = index; 
+                    
+                    // Use append instead of multiple appendChild calls
+                    quoteItem.append(quoteText, quoteAuthor, removeBtn);
+                    
+                    quotesList.appendChild(quoteItem);
+                });
+            }
+
+            // --- Implement Add Quote Function ---
+
+            function addQuote() {
+                const quoteText = quoteInput.value.trim();
+                const authorText = authorInput.value.trim();
+                const categoryText = categoryInput.value.trim();
+
+                if (quoteText && authorText && categoryText) {
+                    const newQuote = {
+                        text: quoteText,
+                        author: authorText,
+                        category: categoryText 
+                    };
+                    
+                    const quotes = getQuotesFromStorage();
+                    quotes.push(newQuote);
+                    saveQuotesToStorage(quotes);
+                    
+                    quoteInput.value = '';
+                    authorInput.value = '';
+                    categoryInput.value = '';
+                    
+                    displayQuotes();
+                } else {
+                    alert('Please fill in the quote, author, and category fields.');
+                }
+            }
+
+            // --- Implement Random Quote Function (RENAMED FUNCTION) ---
+
+            /**
+             * Selects a random quote from storage and displays it.
+             */
+            function displayRandomQuote() {
+                const quotes = getQuotesFromStorage();
+                
+                // Use clearChildren instead of element.innerHTML = ''
+                clearChildren(randomQuoteDisplay);
+                
+                if (quotes.length === 0) {
+                    const noQuotesP = document.createElement('p');
+                    noQuotesP.classList.add('no-quotes');
+                    noQuotesP.textContent = 'Please add some quotes first!';
+                    randomQuoteDisplay.appendChild(noQuotesP);
+                    return;
+                }
+                
+                // 1. Get a random index
+                const randomIndex = Math.floor(Math.random() * quotes.length);
+                const randomQuote = quotes[randomIndex];
+                
+                // 2. Prepare the display elements
+                const cleanQuoteText = randomQuote.text.replace(/^["']|["']$/g, '');
+                
+                const quoteText = document.createElement('p');
+                // Use textContent instead of innerHTML
+                quoteText.textContent = `"${cleanQuoteText}"`;
+                
+                const quoteAuthor = document.createElement('cite');
+                // Use textContent instead of innerHTML
+                quoteAuthor.textContent = `- ${randomQuote.author} (${randomQuote.category || 'N/A'})`;
