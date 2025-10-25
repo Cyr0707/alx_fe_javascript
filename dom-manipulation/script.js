@@ -46,17 +46,19 @@
             flex-direction: column;
             gap: 15px;
             margin-bottom: 30px;
+            padding-bottom: 20px; /* Add space below form */
+            border-bottom: 1px solid #ecf0f1;
         }
 
         #quote-input,
         #author-input,
-        #category-input { /* Added category-input here */
+        #category-input {
             width: 100%;
             padding: 12px;
             font-size: 16px;
             border: 1px solid #ccc;
             border-radius: 6px;
-            box-sizing: border-box; /* Important for padding to work with 100% width */
+            box-sizing: border-box;
         }
 
         #quote-input {
@@ -64,7 +66,8 @@
             resize: vertical;
         }
 
-        #add-quote-btn {
+        #add-quote-btn,
+        #random-quote-btn { /* Style for both buttons */
             padding: 12px 20px;
             font-size: 16px;
             font-weight: bold;
@@ -74,17 +77,50 @@
             border-radius: 6px;
             cursor: pointer;
             transition: background-color 0.2s ease;
+            margin-top: 5px;
         }
 
         #add-quote-btn:hover {
             background-color: #2980b9;
+        }
+        
+        #random-quote-btn {
+            background-color: #2ecc71; /* A different color for the random button */
+        }
+        
+        #random-quote-btn:hover {
+            background-color: #27ae60;
         }
 
         /* Quotes List Styling */
         #quotes-list {
             margin-top: 20px;
         }
-
+        
+        /* Random Quote Display Styling */
+        #random-quote-display {
+            margin-top: 20px;
+            padding: 15px;
+            border: 2px dashed #9b59b6;
+            border-radius: 8px;
+            background-color: #f7f3f9;
+        }
+        
+        #random-quote-display p {
+            font-size: 1.2em;
+            font-style: italic;
+            margin: 0 0 10px 0;
+            color: #8e44ad;
+        }
+        
+        #random-quote-display cite {
+            display: block;
+            text-align: right;
+            font-weight: bold;
+            color: #555;
+            font-size: 1em;
+        }
+        
         .quote-item {
             background-color: #f9f9f9;
             border: 1px solid #eee;
@@ -108,7 +144,7 @@
             text-align: right;
             font-weight: bold;
             color: #555;
-            font-size: 0.9em; /* Make citation slightly smaller */
+            font-size: 0.9em;
         }
         
         .remove-btn {
@@ -144,75 +180,4 @@
         
         <div id="quote-form">
             <textarea id="quote-input" placeholder="Enter the quote..."></textarea>
-            <input type="text" id="author-input" placeholder="Enter the author's name...">
-            <input type="text" id="category-input" placeholder="Enter the quote category (e.g., Philosophy, Tech, Humor)">
-            <button id="add-quote-btn">Add Quote</button>
-        </div>
-        
-        <h2>Stored Quotes</h2>
-        <div id="quotes-list">
-            </div>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            
-            // --- Define Variables ---
-            const quoteInput = document.getElementById('quote-input');
-            const authorInput = document.getElementById('author-input');
-            const categoryInput = document.getElementById('category-input'); // NEW VARIABLE
-            const addQuoteBtn = document.getElementById('add-quote-btn');
-            const quotesList = document.getElementById('quotes-list');
-            
-            // Use a single, consistent key for local storage
-            const STORAGE_KEY = 'myFavoriteQuotes';
-
-            // --- Helper Functions ---
-
-            /**
-             * Gets all quotes from local storage and parses them.
-             * @returns {Array} An array of quote objects.
-             */
-            function getQuotesFromStorage() {
-                const quotesString = localStorage.getItem(STORAGE_KEY);
-                // If no quotes are stored, return an empty array
-                return quotesString ? JSON.parse(quotesString) : [];
-            }
-
-            /**
-             * Saves the provided array of quotes to local storage.
-             * @param {Array} quotes - The array of quote objects to save.
-             */
-            function saveQuotesToStorage(quotes) {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(quotes));
-            }
-
-            // --- Implement Display Function ---
-            
-            /**
-             * Renders all stored quotes to the DOM.
-             */
-            function displayQuotes() {
-                const quotes = getQuotesFromStorage();
-                
-                // Clear the current list to avoid duplicates
-                quotesList.innerHTML = ''; 
-
-                if (quotes.length === 0) {
-                    quotesList.innerHTML = '<p class="no-quotes">No quotes stored yet.</p>';
-                    return;
-                }
-
-                // Iterate through quotes and create HTML for each
-                quotes.forEach((quote, index) => {
-                    // Create the main container div
-                    const quoteItem = document.createElement('div');
-                    quoteItem.classList.add('quote-item');
-                    
-                    // Create the quote text paragraph
-                    const quoteText = document.createElement('p');
-                    const cleanQuoteText = quote.text.replace(/^["']|["']$/g, '');
-                    quoteText.textContent = `"${cleanQuoteText}"`; 
-                    
-                    // Create the author citation (UPDATED TO INCLUDE CATEGORY)
-                    const quoteAuthor
+            <input type="text
