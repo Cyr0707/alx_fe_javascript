@@ -1,10 +1,11 @@
 // --- Global Variables ---
 let quoteInput, authorInput, categoryInput, addQuoteBtn, randomQuoteBtn, exportBtn, categoryFilter;
-let appContainer, quotesList, randomQuoteDisplay;
+// RENAMED: 'randomQuoteDisplay' is now 'quoteDisplay'
+let appContainer, quotesList, quoteDisplay; 
 
 const STORAGE_KEY = 'myFavoriteQuotes';
 const SESSION_KEY = 'lastViewedQuote';
-const FILTER_KEY = 'lastSelectedFilter'; // NEW: Key for saving the filter
+const FILTER_KEY = 'lastSelectedFilter'; 
 
 // --- Helper Functions (Global Scope) ---
 
@@ -36,17 +37,14 @@ function clearChildren(element) {
 // --- Display Functions (Global Scope) ---
 
 /**
- * NEW: Populates the category filter dropdown with unique categories.
+ * Populates the category filter dropdown with unique categories.
  */
 function populateCategories() {
     const quotes = getQuotesFromStorage();
-    // Use a Set to get only unique category names
     const categories = new Set(quotes.map(quote => quote.category));
     
-    // Get the last saved filter from local storage
     const savedFilter = localStorage.getItem(FILTER_KEY) || 'all';
 
-    // Clear existing options (but leave "All Categories")
     categoryFilter.innerHTML = '<option value="all">All Categories</option>';
 
     categories.forEach(category => {
@@ -56,7 +54,6 @@ function populateCategories() {
         categoryFilter.appendChild(option);
     });
 
-    // Set the dropdown to the last saved filter
     categoryFilter.value = savedFilter;
 }
 
@@ -65,17 +62,15 @@ function populateCategories() {
  */
 function displayQuotes() {
     const quotes = getQuotesFromStorage();
-    // Get the currently selected filter value
     const selectedCategory = categoryFilter.value; 
     
     clearChildren(quotesList); 
 
-    let quotesDisplayed = 0; // Counter for displayed quotes
+    let quotesDisplayed = 0; 
 
-    // Loop through all quotes, but only display ones that match the filter
     quotes.forEach((quote, originalIndex) => {
         if (selectedCategory === 'all' || quote.category === selectedCategory) {
-            quotesDisplayed++; // Increment counter
+            quotesDisplayed++; 
             
             const quoteItem = document.createElement('div');
             quoteItem.classList.add('quote-item');
@@ -90,7 +85,6 @@ function displayQuotes() {
             const removeBtn = document.createElement('button');
             removeBtn.classList.add('remove-btn');
             removeBtn.textContent = '×';
-            // IMPORTANT: Use the originalIndex so remove works correctly
             removeBtn.dataset.index = originalIndex; 
             
             quoteItem.append(quoteText, quoteAuthor, removeBtn);
@@ -98,7 +92,6 @@ function displayQuotes() {
         }
     });
 
-    // If no quotes were displayed, show a relevant message
     if (quotesDisplayed === 0) {
         const noQuotesP = document.createElement('p');
         noQuotesP.classList.add('no-quotes');
@@ -117,7 +110,8 @@ function displayQuotes() {
  * @param {boolean} [isPlaceholder=false] - If true, style as a placeholder.
  */
 function displayInRandomArea(quote, isPlaceholder = false) {
-     clearChildren(randomQuoteDisplay);
+     // RENAMED: Using 'quoteDisplay'
+     clearChildren(quoteDisplay); 
      
      const quoteText = document.createElement('p');
      const quoteAuthor = document.createElement('cite');
@@ -125,12 +119,14 @@ function displayInRandomArea(quote, isPlaceholder = false) {
      if (isPlaceholder) {
          quoteText.textContent = quote.text;
          quoteText.classList.add('no-quotes');
-         randomQuoteDisplay.appendChild(quoteText);
+         // RENAMED: Using 'quoteDisplay'
+         quoteDisplay.appendChild(quoteText); 
      } else {
         const cleanQuoteText = (quote.text || '').replace(/^["']|["']$/g, '');
         quoteText.textContent = `"${cleanQuoteText}"`;
         quoteAuthor.textContent = `- ${quote.author || 'Unknown'} (${quote.category || 'N/A'})`;
-        randomQuoteDisplay.append(quoteText, quoteAuthor);
+        // RENAMED: Using 'quoteDisplay'
+        quoteDisplay.append(quoteText, quoteAuthor); 
      }
 }
 
@@ -207,7 +203,7 @@ function addQuote() {
         authorInput.value = '';
         categoryInput.value = '';
         
-        populateCategories(); // UPDATE: Refresh category dropdown
+        populateCategories(); 
         displayQuotes();
     } else {
         alert('Please fill in the quote, author, and category fields.');
@@ -219,7 +215,7 @@ function removeQuote(indexToRemove) {
     quotes = quotes.filter((_, index) => index !== indexToRemove);
     saveQuotesToStorage(quotes);
     
-    populateCategories(); // UPDATE: Refresh category dropdown
+    populateCategories(); 
     displayQuotes();
 }
 
@@ -239,7 +235,7 @@ function showRandomQuote() {
 }
 
 /**
- * NEW: Saves the selected filter and redisplays the quotes.
+ * Saves the selected filter and redisplays the quotes.
  * This is called by the onchange attribute in the HTML.
  */
 function filterQuotes() {
@@ -293,7 +289,7 @@ function importFromJsonFile(event) {
             
             saveQuotesToStorage(allQuotes);
             
-            populateCategories(); // UPDATE: Refresh category dropdown
+            populateCategories(); 
             displayQuotes();
             
             alert(`Imported ${validQuotes.length} quotes successfully!`);
@@ -315,9 +311,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Assign global DOM element variables
     appContainer = document.getElementById('app-container');
     quotesList = document.getElementById('quotes-list');
-    randomQuoteDisplay = document.getElementById('random-quote-display');
+    // RENAMED: Using 'quoteDisplay' and targeting the ID 'random-quote-display'
+    quoteDisplay = document.getElementById('random-quote-display'); 
     exportBtn = document.getElementById('export-btn');
-    categoryFilter = document.getElementById('categoryFilter'); // NEW
+    categoryFilter = document.getElementById('categoryFilter'); 
     
     // 2. Create the form
     createAddQuoteForm();
@@ -336,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 4. Initial Display
     loadLastViewedQuote();
-    populateCategories(); // NEW: Populate dropdown and set saved filter
-    displayQuotes(); // NEW: Will now display with the saved filter
+    populateCategories(); 
+    displayQuotes(); 
     
 });
