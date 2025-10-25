@@ -1,44 +1,30 @@
 // --- Global Variables ---
 let quoteInput, authorInput, categoryInput, addQuoteBtn, randomQuoteBtn, exportBtn, categoryFilter;
-// RENAMED: 'randomQuoteDisplay' is now 'quoteDisplay'
-let appContainer, quotesList, quoteDisplay; 
+let appContainer, quotesList, quoteDisplay;
+let syncBtn, syncStatus; // NEW: For server sync
 
 const STORAGE_KEY = 'myFavoriteQuotes';
 const SESSION_KEY = 'lastViewedQuote';
 const FILTER_KEY = 'lastSelectedFilter'; 
+const SERVER_URL = 'https://jsonplaceholder.typicode.com/posts'; // NEW: Mock server URL
 
 // --- Helper Functions (Global Scope) ---
 
-/**
- * Gets all quotes from local storage and parses them.
- * @returns {Array} An array of quote objects.
- */
 function getQuotesFromStorage() {
     const quotesString = localStorage.getItem(STORAGE_KEY);
     return quotesString ? JSON.parse(quotesString) : [];
 }
 
-/**
- * Saves the provided array of quotes to local storage.
- * @param {Array} quotes - The array of quote objects to save.
- */
 function saveQuotesToStorage(quotes) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(quotes));
 }
 
-/**
- * Clears all children from a DOM element.
- * @param {Element} element - The parent element to clear.
- */
 function clearChildren(element) {
     element.innerHTML = '';
 }
 
 // --- Display Functions (Global Scope) ---
 
-/**
- * Populates the category filter dropdown with unique categories.
- */
 function populateCategories() {
     const quotes = getQuotesFromStorage();
     const categories = new Set(quotes.map(quote => quote.category));
@@ -57,9 +43,6 @@ function populateCategories() {
     categoryFilter.value = savedFilter;
 }
 
-/**
- * Renders stored quotes to the DOM, applying the selected category filter.
- */
 function displayQuotes() {
     const quotes = getQuotesFromStorage();
     const selectedCategory = categoryFilter.value; 
@@ -104,13 +87,7 @@ function displayQuotes() {
     }
 }
 
-/**
- * Creates and displays a quote in the random display area.
- * @param {Object} quote - The quote object {text, author, category}
- * @param {boolean} [isPlaceholder=false] - If true, style as a placeholder.
- */
 function displayInRandomArea(quote, isPlaceholder = false) {
-     // RENAMED: Using 'quoteDisplay'
      clearChildren(quoteDisplay); 
      
      const quoteText = document.createElement('p');
@@ -119,20 +96,15 @@ function displayInRandomArea(quote, isPlaceholder = false) {
      if (isPlaceholder) {
          quoteText.textContent = quote.text;
          quoteText.classList.add('no-quotes');
-         // RENAMED: Using 'quoteDisplay'
          quoteDisplay.appendChild(quoteText); 
      } else {
         const cleanQuoteText = (quote.text || '').replace(/^["']|["']$/g, '');
         quoteText.textContent = `"${cleanQuoteText}"`;
         quoteAuthor.textContent = `- ${quote.author || 'Unknown'} (${quote.category || 'N/A'})`;
-        // RENAMED: Using 'quoteDisplay'
         quoteDisplay.append(quoteText, quoteAuthor); 
      }
 }
 
-/**
- * Loads the last viewed quote from session storage.
- */
 function loadLastViewedQuote() {
     const lastQuoteString = sessionStorage.getItem(SESSION_KEY);
     if (lastQuoteString) {
@@ -145,14 +117,10 @@ function loadLastViewedQuote() {
 
 // --- Core App Logic (Global Scope) ---
 
-/**
- * Creates the quote input form and appends it to the container.
- */
 function createAddQuoteForm() {
     const formDiv = document.createElement('div');
     formDiv.id = 'quote-form';
 
-    // Create and assign global variables
     quoteInput = document.createElement('textarea');
     quoteInput.id = 'quote-input';
     quoteInput.placeholder = 'Enter the quote...';
@@ -183,20 +151,29 @@ function createAddQuoteForm() {
     appContainer.insertBefore(formDiv, dataManagementDiv);
 }
 
-function addQuote() {
+// MODIFIED: 'addQuote' is now async to handle server POST
+async function addQuote() {
     const quoteText = quoteInput.value.trim();
     const authorText = authorInput.value.trim();
     const categoryText = categoryInput.value.trim();
 
-    if (quoteText && authorText && categoryText) {
-        const newQuote = {
-            text: quoteText,
-            author: authorText,
-            category: categoryText 
-        };
+    if (!quoteText || !authorText || !categoryText) {
+        alert('Please fill in the quote, author, and category fields.');
+        return;
+    }
+
+    const newQuote = {
+        text: quoteText,
+        author: authorText,
+        category: categoryText 
+    };
+    
+    try {
+        // Push to server and get back the quote with a server ID
+        const serverQuote = await pushQuoteToServer(newQuote);
         
         const quotes = getQuotesFromStorage();
-        quotes.push(newQuote);
+        quotes.push(serverQuote);
         saveQuotesToStorage(quotes);
         
         quoteInput.value = '';
@@ -205,13 +182,38 @@ function addQuote() {
         
         populateCategories(); 
         displayQuotes();
-    } else {
-        alert('Please fill in the quote, author, and category fields.');
+        updateSyncStatus('Quote saved and synced with server.');
+    } catch (error) {
+        console.error('Failed to post quote:', error);
+        updateSyncStatus('Error: Quote saved locally but failed to sync.');
+        // Still save locally even if server fails
+        const quotes = getQuotesFromStorage();
+        quotes.push(newQuote); // Save without server ID
+        saveQuotesToStorage(quotes);
+        populateCategories(); 
+        displayQuotes();
     }
 }
 
-function removeQuote(indexToRemove) {
+// MODIFIED: 'removeQuote' is now async to handle server DELETE
+async function removeQuote(indexToRemove) {
     let quotes = getQuotesFromStorage();
+    const quoteToRemove = quotes[indexToRemove];
+
+    // If the quote has a server 'id', attempt to delete it from the server
+    if (quoteToRemove && quoteToRemove.id) {
+        try {
+            await fetch(`${SERVER_URL}/${quoteToRemove.id}`, {
+                method: 'DELETE',
+            });
+            updateSyncStatus(`Quote ${quoteToRemove.id} deleted from server.`);
+        } catch (error) {
+            console.error('Failed to delete quote from server:', error);
+            updateSyncStatus('Error: Failed to delete quote from server.');
+        }
+    }
+
+    // Remove from local storage regardless
     quotes = quotes.filter((_, index) => index !== indexToRemove);
     saveQuotesToStorage(quotes);
     
@@ -234,17 +236,13 @@ function showRandomQuote() {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(randomQuote));
 }
 
-/**
- * Saves the selected filter and redisplays the quotes.
- * This is called by the onchange attribute in the HTML.
- */
 function filterQuotes() {
     const selectedCategory = categoryFilter.value;
     localStorage.setItem(FILTER_KEY, selectedCategory);
     displayQuotes();
 }
 
-// --- Import / Export Functions (Global Scope) ---
+// --- Import / Export Functions ---
 
 function exportQuotes() {
     const quotes = getQuotesFromStorage();
@@ -264,9 +262,7 @@ function exportQuotes() {
 
 function importFromJsonFile(event) {
     const file = event.target.files[0];
-    if (!file) {
-        return; 
-    }
+    if (!file) { return; }
 
     const fileReader = new FileReader();
     
@@ -285,13 +281,17 @@ function importFromJsonFile(event) {
             }
             
             const currentQuotes = getQuotesFromStorage();
-            const allQuotes = currentQuotes.concat(validQuotes);
-            
-            saveQuotesToStorage(allQuotes);
-            
+            // Simple merge: add new, avoiding exact duplicates
+            const currentQuotesSet = new Set(currentQuotes.map(q => JSON.stringify(q)));
+            validQuotes.forEach(q => {
+                if (!currentQuotesSet.has(JSON.stringify(q))) {
+                    currentQuotes.push(q);
+                }
+            });
+
+            saveQuotesToStorage(currentQuotes);
             populateCategories(); 
             displayQuotes();
-            
             alert(`Imported ${validQuotes.length} quotes successfully!`);
 
         } catch (error) {
@@ -304,6 +304,111 @@ function importFromJsonFile(event) {
     event.target.value = null;
 }
 
+// --- NEW: Server Sync Functions ---
+
+/**
+ * Updates the sync status message in the UI.
+ */
+function updateSyncStatus(message, isError = false) {
+    syncStatus.textContent = message;
+    syncStatus.style.color = isError ? '#e74c3c' : '#777';
+    
+    // Clear the message after 4 seconds
+    setTimeout(() => {
+        syncStatus.textContent = '';
+    }, 4000);
+}
+
+/**
+ * Maps a post from JSONPlaceholder to our quote format.
+ */
+function mapServerQuote(post) {
+    return {
+        id: post.id, // Keep the server ID
+        text: post.title,
+        author: `User ${post.userId}`,
+        category: 'Server' // Assign a default category
+    };
+}
+
+/**
+ * Pushes a new local quote to the server (simulated).
+ * Returns the new quote with the server's ID.
+ */
+async function pushQuoteToServer(quote) {
+    const response = await fetch(SERVER_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+            title: quote.text,
+            body: quote.text, // JSONPlaceholder needs a 'body'
+            userId: 1 // Mock user ID
+        }),
+        headers: {
+            'Content-type': 'application/json; charset=UTF-8',
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+    }
+
+    const serverPost = await response.json();
+    
+    // Return our quote format, but with the new ID from the server
+    return {
+        id: serverPost.id,
+        text: quote.text,
+        author: quote.author,
+        category: quote.category
+    };
+}
+
+/**
+ * Fetches server data and merges it with local data.
+ */
+async function syncData() {
+    updateSyncStatus('Syncing with server...');
+    try {
+        // 1. Fetch "base" quotes from the server
+        const response = await fetch(`${SERVER_URL}?_limit=10`); // Get 10 base quotes
+        if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+        }
+        const serverPosts = await response.json();
+        const serverBaseQuotes = serverPosts.map(mapServerQuote);
+
+        // 2. Get all local quotes
+        const localQuotes = getQuotesFromStorage();
+
+        // 3. Find quotes that are *only* local (ours that we added)
+        // We assume serverBaseQuotes are IDs 1-10
+        const localOnlyQuotes = localQuotes.filter(lq => {
+            // Check if this local quote's ID is in the base server set
+            return !serverBaseQuotes.some(sq => sq.id === lq.id);
+        });
+
+        // 4. Merge: Server data takes precedence, but we keep our added quotes
+        const mergedQuotes = [...serverBaseQuotes, ...localOnlyQuotes];
+        
+        // Sort by ID to maintain a consistent order
+        mergedQuotes.sort((a, b) => (a.id || 0) - (b.id || 0));
+        
+        // 5. Check if a sync is actually needed
+        if (JSON.stringify(mergedQuotes) !== JSON.stringify(localQuotes)) {
+            saveQuotesToStorage(mergedQuotes);
+            populateCategories();
+            displayQuotes();
+            updateSyncStatus('Sync complete. Data merged from server.');
+        } else {
+            updateSyncStatus('Sync complete. Already up-to-date.');
+        }
+
+    } catch (error) {
+        console.error('Sync failed:', error);
+        updateSyncStatus('Sync failed. Could not connect to server.', true);
+    }
+}
+
 
 // --- App Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -311,10 +416,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Assign global DOM element variables
     appContainer = document.getElementById('app-container');
     quotesList = document.getElementById('quotes-list');
-    // RENAMED: Using 'quoteDisplay' and targeting the ID 'random-quote-display'
     quoteDisplay = document.getElementById('random-quote-display'); 
     exportBtn = document.getElementById('export-btn');
     categoryFilter = document.getElementById('categoryFilter'); 
+    syncBtn = document.getElementById('sync-btn'); // NEW
+    syncStatus = document.getElementById('sync-status'); // NEW
     
     // 2. Create the form
     createAddQuoteForm();
@@ -323,6 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
     addQuoteBtn.addEventListener('click', addQuote);
     randomQuoteBtn.addEventListener('click', showRandomQuote); 
     exportBtn.addEventListener('click', exportQuotes); 
+    syncBtn.addEventListener('click', syncData); // NEW
 
     quotesList.addEventListener('click', (event) => {
         if (event.target.classList.contains('remove-btn')) {
@@ -331,9 +438,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 4. Initial Display
+    // 4. Initial Display & Sync
     loadLastViewedQuote();
     populateCategories(); 
-    displayQuotes(); 
+    displayQuotes();
+    
+    // 5. Initial sync on load and set up periodic sync
+    syncData(); // Sync once on load
+    setInterval(syncData, 60000); // Sync every 60 seconds
     
 });
